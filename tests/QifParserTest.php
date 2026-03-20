@@ -95,4 +95,85 @@ class QifParserTest extends TestCase
         
         $this->assertTrue($t->validateSplits());
     }
+
+    /**
+     * @requirement FR-1.1
+     * Tests that parse() reads a QIF file from disk and returns parsed transactions.
+     */
+    public function testParseFromFile(): void
+    {
+        $qifContent = "!Type:Bank\nD03/19'26\nT-50.00\nPWalmart\n^\n";
+        $tmpFile = tempnam(sys_get_temp_dir(), 'qif_test_');
+        file_put_contents($tmpFile, $qifContent);
+
+        try {
+            $parser = new QifParser('B', 'A');
+            $transactions = $parser->parse($tmpFile);
+
+            $this->assertCount(1, $transactions);
+            $this->assertEquals('Walmart', $transactions[0]->payee);
+            $this->assertEquals(-50.00, $transactions[0]->amount);
+        } finally {
+            unlink($tmpFile);
+        }
+    }
+
+    /**
+     * @requirement FR-1.1
+     * Tests that parse() throws RuntimeException for a non-existent file.
+     */
+    public function testParseFileNotFound(): void
+    {
+        $parser = new QifParser('B', 'A');
+        $this->expectException(\RuntimeException::class);
+        $parser->parse('/nonexistent/path/to/file_xxxxxxxxxxx.qif');
+    }
+
+    /**
+     * @requirement FR-2.1.1
+     * Tests N (check number) and L (category) legacy QIF tags via handleLegacyCodes.
+     */
+    public function testParseLegacyNAndLTags(): void
+    {
+        $qifContent = "!Type:Bank\nD03/19'26\nT-50.00\nPWalmart\nN12345\nLGroceries\n^\n";
+        $parser = new QifParser('B', 'A');
+        $statement = $parser->parseContent($qifContent);
+
+        $t = $statement->transactions[0];
+        $this->assertEquals('12345', $t->number);
+        $this->assertEquals('Groceries', $t->category);
+    }
+
+    /**
+     * @requirement FR-2.1.1
+     * Tests that A (address) tags after a P (payee) tag populate payeeDetails->address.
+     */
+    public function testParseAddressLines(): void
+    {
+        $qifContent = "!Type:Bank\nD03/19'26\nT-50.00\nPWalmart\nA123 Fake St\nAAnonymCity\n^\n";
+        $parser = new QifParser('B', 'A');
+        $statement = $parser->parseContent($qifContent);
+
+        $t = $statement->transactions[0];
+        $this->assertEquals('Walmart', $t->payee);
+        $this->assertNotNull($t->payeeDetails);
+        $this->assertCount(2, $t->payeeDetails->address);
+        $this->assertEquals('AnonymCity', $t->payeeDetails->address[1]);
+    }
+
+    /**
+     * @requirement FR-2.1.4
+     * Tests that a split amount tag ($) without a preceding S category tag is handled gracefully.
+     * This exercises the SplitParser defensive branch for orphaned split tags.
+     */
+    public function testSplitAmountWithoutSTag(): void
+    {
+        $qifContent = "!Type:Bank\nD03/19'26\nT-100.00\nPTest Payee\n\$-100.00\n^\n";
+        $parser = new QifParser('B', 'A');
+        $statement = $parser->parseContent($qifContent);
+
+        $t = $statement->transactions[0];
+        $this->assertCount(1, $t->splits);
+        $this->assertEquals(-100.00, $t->splits[0]->amount);
+    }
 }

@@ -41,4 +41,18 @@ class DateParserTest extends TestCase
         $parser->parse("03/19/2026", $transaction);
         $this->assertEquals('2026-03-19', $transaction->date);
     }
+
+    /**
+     * @requirement FR-2.1.2
+     * Tests 2-digit year 70-99 (maps to 1970-1999).
+     */
+    public function testTwoDigitYearPreMillennium(): void
+    {
+        $parser = new DateParser('MDY');
+        $transaction = new QifTransaction();
+
+        // Year 95 is between 70-99 so maps to 1995
+        $parser->parse("03/19'95", $transaction);
+        $this->assertEquals('1995-03-19', $transaction->date);
+    }
 }

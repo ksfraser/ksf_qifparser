@@ -19,6 +19,15 @@ class QifStatement
     /** @var string Currency Code (External Injection) */
     public $currency;
 
+    /** @var string Bank identifier (External Injection) */
+    public string $bankId = '';
+
+    /** @var string Account identifier (External Injection) */
+    public string $accountId = '';
+
+    /** @var string QIF account type (Bank, CCard, etc.) */
+    public string $type = '';
+
     /** @var float */
     public $startBalance = 0.0;
 

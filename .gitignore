@@ -1,0 +1,25 @@
+# Composer dependencies - never committed
+vendor/
+
+# PHPUnit output and coverage
+.phpunit.result.cache
+.phpunit.cache/
+coverage/
+coverage-html/
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local scratch files
+*.local
+phpunit_run.txt
+phpunit_coverage.txt
+diag.txt

@@ -1,5 +1,10 @@
 # Technical Requirements
 
+## Souce Control
+- **Git**: Files will be stored in git
+- **github**: repos will be stored in our github account.
+- **gitignore**: vendor directory (from composer) will ALWAYS be excluded from git.
+
 ## Platform and Environment
 
 - **Target Platform**: Compatible with major PHP-based business applications

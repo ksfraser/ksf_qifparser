@@ -2,6 +2,7 @@
 
 namespace Ksfraser\QifParser\Tests;
 
+use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Ksfraser\QifParser\Entities\QifTransaction;
 use Ksfraser\QifParser\Entities\QifStatement;
@@ -11,11 +12,13 @@ use Ksfraser\QifParser\Entities\QifStatement;
  * @requirement FR-2.1.3
  * @requirement FR-2.1.4
  */
+#[CoversMethod(\Ksfraser\QifParser\Entities\QifTransaction::class, 'validateSplits')]
+#[CoversMethod(\Ksfraser\QifParser\Entities\QifTransaction::class, 'addSplit')]
+#[CoversMethod(\Ksfraser\QifParser\Entities\QifStatement::class, 'addTransaction')]
 class EntityTest extends TestCase
 {
     /**
-     * @test
-     * @covers \Ksfraser\QifParser\Entities\QifTransaction::validateSplits
+     * @requirement FR-2.1.4
      */
     public function testSplitValidationPasses()
     {
@@ -28,8 +31,7 @@ class EntityTest extends TestCase
     }
 
     /**
-     * @test
-     * @covers \Ksfraser\QifParser\Entities\QifTransaction::validateSplits
+     * @requirement FR-2.1.4
      */
     public function testSplitValidationFails()
     {
@@ -42,7 +44,19 @@ class EntityTest extends TestCase
     }
 
     /**
-     * @test
+     * @requirement FR-2.1.4
+     * Tests that validateSplits() returns true when there are no splits (no splits = no mismatch).
+     */
+    public function testValidateSplitsWithEmptySplits(): void
+    {
+        $transaction = new QifTransaction();
+        $transaction->amount = 50.00;
+
+        $this->assertTrue($transaction->validateSplits(), "A transaction with no splits should pass validation.");
+    }
+
+    /**
+     * @requirement FR-2.1.2
      */
     public function testStatementEntityCollection()
     {

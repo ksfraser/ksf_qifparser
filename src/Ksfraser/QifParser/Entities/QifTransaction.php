@@ -43,7 +43,7 @@ class QifTransaction
      * @param string $category
      * @param string|null $memo
      */
-    public function addSplit(float $amount, string $category, string $memo = null): void
+    public function addSplit(float $amount, string $category, ?string $memo = null): void
     {
         $split = new QifSplit();
         $split->amount = $amount;
@@ -72,44 +72,3 @@ class QifTransaction
     }
 }
 
-/**
- * Internal entity for Payee details
- */
-class Payee
-{
-    /** @var string[] Array of address lines */
-    public $address = [];
-
-    /** @var string|null City name */
-    public $city;
-
-    /** @var string|null State/Province */
-    public $state;
-
-    /** @var string|null Postal/Zip code */
-    public $postalCode;
-
-    /** @var string|null Country name */
-    public $country;
-
-    /** @var string|null Phone number */
-    public $phone;
-
-    /**
-     * @param string $line
-     */
-    public function addAddressLine(string $line): void
-    {
-        $this->address[] = $line;
-    }
-}
-
-/**
- * Internal entity for Split items
- */
-class QifSplit
-{
-    public $amount = 0.0;
-    public $category;
-    public $memo;
-}

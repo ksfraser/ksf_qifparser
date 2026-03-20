@@ -4,8 +4,14 @@ namespace Ksfraser\QifParser;
 
 use Ksfraser\QifParser\Entities\QifStatement;
 use Ksfraser\QifParser\Entities\QifTransaction;
-use Ksfraser\QifParser\Parsers\DateParser;
+use Ksfraser\QifParser\Parsers\AddressParser;
 use Ksfraser\QifParser\Parsers\AmountParser;
+use Ksfraser\QifParser\Parsers\CategoryParser;
+use Ksfraser\QifParser\Parsers\DateParser;
+use Ksfraser\QifParser\Parsers\MemoParser;
+use Ksfraser\QifParser\Parsers\NullParser;
+use Ksfraser\QifParser\Parsers\NumberParser;
+use Ksfraser\QifParser\Parsers\ParserInterface;
 use Ksfraser\QifParser\Parsers\PayeeParser;
 use Ksfraser\QifParser\Parsers\SplitParser;
 use Ksfraser\QifParser\Services\FitidService;
@@ -33,8 +39,16 @@ class QifParser
     /** @var string MDY or DMY */
     private $dateFormat;
 
-    /** @var array Map of tag prefix to Parser objects */
+    /** @var ParserInterface[] Map of tag character to Parser object */
     private $parsers = [];
+
+    /**
+     * Null Object parser used for any unrecognised QIF tag.
+     * Prevents silent switch fall-through and makes intent explicit.
+     *
+     * @var NullParser
+     */
+    private $nullParser;
 
     /** @var FitidService */
     private $fitidService;
@@ -61,11 +75,17 @@ class QifParser
      */
     private function initializeParsers(): void
     {
+        $this->nullParser = new NullParser();
+
         $this->parsers['D'] = new DateParser($this->dateFormat);
         $this->parsers['T'] = new AmountParser();
-        $this->parsers['P'] = new PayeeParser();
-        $this->parsers['A'] = new PayeeParser(); // Address tags handled by same parser
-        
+        $payeeParser = new PayeeParser();
+        $this->parsers['P'] = $payeeParser;
+        $this->parsers['A'] = new AddressParser();
+        $this->parsers['M'] = new MemoParser();
+        $this->parsers['N'] = new NumberParser();
+        $this->parsers['L'] = new CategoryParser();
+
         // Split tags (S, E, $) are handled by a single SplitParser statefully
         $splitParser = new SplitParser();
         $this->parsers['S'] = $splitParser;
@@ -137,41 +157,18 @@ class QifParser
                 $currentTransaction->fileSequence = $fileSequence;
             }
 
-            // Process via SRP Parsers
-            if (isset($this->parsers[$tag])) {
-                // For split items, we pass the full tag + value to the SplitParser to handle multi-char tag logic
-                if ($tag === 'S' || $tag === 'E' || $tag === '$') {
-                    $this->parsers[$tag]->parse($line, $currentTransaction);
-                } else {
-                    $this->parsers[$tag]->parse($value, $currentTransaction);
-                }
+            // Dispatch to the registered parser; NullParser handles any unrecognised tag silently.
+            // Split parsers (S, E, $) require the full line to retain the tag character for context.
+            $parser = $this->parsers[$tag] ?? $this->nullParser;
+            if ($tag === 'S' || $tag === 'E' || $tag === '$') {
+                $parser->parse($line, $currentTransaction);
             } else {
-                // Fallback for codes like M (Memo), N (CheckNum), L (Category) not yet in SRP
-                $this->handleLegacyCodes($tag, $value, $currentTransaction);
+                $parser->parse($value, $currentTransaction);
             }
         }
 
         return $statement;
     }
 
-    /**
-     * @param string $tag
-     * @param string $value
-     * @param QifTransaction $transaction
-     * @return void
-     */
-    private function handleLegacyCodes(string $tag, string $value, QifTransaction $transaction): void
-    {
-        switch ($tag) {
-            case 'M':
-                $transaction->memo = $value;
-                break;
-            case 'N':
-                $transaction->number = $value;
-                break;
-            case 'L':
-                $transaction->category = $value;
-                break;
-        }
-    }
 }
+
