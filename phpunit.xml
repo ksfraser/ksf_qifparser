@@ -13,6 +13,7 @@
     <source>
         <include>
             <directory suffix=".php">src</directory>
+            <file>qif_parser.php</file>
         </include>
     </source>
 </phpunit>
