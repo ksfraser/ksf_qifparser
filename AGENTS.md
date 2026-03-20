@@ -46,22 +46,30 @@ Plugins can extend with additional tables following established patterns.
 
 ### Design Patterns and Practices
 - **Dependency Injection (DI)**: Use constructor injection for dependencies
-- **Polymorphism over Conditionals**: Use SRP classes and polymorphism instead of conditional logic where possible (following Martin Fowler's Replace Conditional with Polymorphism)
+- **Polymorphism over Conditionals**: Use SRP classes and polymorphism instead of conditional logic where possible (following Martin Fowler's "Replace Conditional with Polymorphism"). **THERE SHOULD BE FEW IF/THEN/ELSE BLOCKS NOR SWITCH STATEMENTS**. Instead use classes (per Fowler) where it returns the output the if'd function would have, or return nothing (NULL).
 - **DRY (Don't Repeat Yourself)**: Use parent classes, traits, and composition
 - **Composition over Inheritance**: Prefer composition where appropriate
 - **Strategy Pattern**: For interchangeable algorithms
 - **Factory Pattern**: For object creation
 - **Observer Pattern**: For event-driven architecture
+- **Security by Design**: Sanitize all inputs, use prepared statements, and follow least privilege principles.
+- **Logging & Monitoring**: Implement structured logging with configurable levels (error, warning, info, debug). Logging level should be settable via config file or MySQL DB table.
 
 ## Code Quality
 
 ### Documentation
 - **Project Documentation**: Standardized documentation in `Project Docs/` directory based on BABOK (Business Analysis Body of Knowledge) outputs
-    - Expected documents: Business Requirements, Functional Requirements, Use Cases, Architecture, Design docs, Test Cases, RTM, etc.
+    - Expected documents: Business Requirements, Functional Requirements, Use Cases, Architecture, Design docs, Test Cases, RTM, BRD (Business Requirements Document), FRD (Functional Requirements Document), NFR (Non-Functional Requirements), ERD (Entity Relationship Diagram), UML Class Diagrams, Message Flow Diagrams, Program Flow Diagrams, QA Test Plan, and UAT (User Acceptance Test) checklist.
+- **Automated Documentation**: Use phpDocumentor to generate HTML documentation.
+    - **UML in PHPDoc**: All classes must include UML diagrams in their PHPDoc blocks describing structure, message flows, and variable passing.
+    - **Relationship Diagrams**: Include class relationship diagrams (inheritance, composition, dependencies).
+    - **Automation**: Use a `generate-docs.sh` (or equivalent) script to automate the generation of documentation artifacts (including JPG/PNG diagrams).
 - **PHPDoc**: Comprehensive PHPDoc blocks for all classes, methods, and properties
 - **Inline Comments**: Clear comments for complex logic
 - **README**: Detailed usage instructions and API documentation
 - **Architecture Documentation**: System design and component relationships
+    - **Dual Approach**: Maintain both high-level architecture documents and implementation-specific docs mapping classes/methods to components.
+    - **Traceability**: Update docs whenever new classes/functions are added to ensure message flow and interaction mapping.
 
 ### UI Framework Standards
 - **HTML Generation Library**: Use established HTML generation libraries
@@ -74,10 +82,14 @@ Plugins can extend with additional tables following established patterns.
 - **Separation of Concerns**: UI generation separated from business logic
 
 ### Testing Standards
-- **Test-Driven Development (TDD)**: Write tests before implementing functionality (Red-Green-Refactor cycle)
+- **Test-Driven Development (TDD)**: Write tests before implementing functionality (Red-Green-Refactor cycle).
+    - **Requirement Mapping**: All unit tests must map back to specific requirements in the traceability matrix.
+    - **TDD Workflow**: Write the unit test first (it should fail), then implement the code to make it pass.
+    - **Traceability**: Each code unit should indicate (in comments or docblocks) which requirement it fulfills.
 - **Unit Tests**: 100% code coverage for all classes and methods
+    - **Requirement Mapping**: All unit tests must map back to specific requirements in the traceability matrix.
 - **Edge Cases**: Test all boundary conditions, error scenarios, and invalid inputs
-- **Mocking**: Use mocks/stubs for external dependencies (database, file system, etc.)
+- **Mocking**: Use mocks/stubs for external dependencies (database, file system, etc.). Use dependency injection to facilitate mocking and testing.
 - **Test Frameworks**: PHPUnit for unit testing
 - **Test Structure**: Tests in `tests/` directory with PHPUnit configuration
 - **Coverage Reports**: HTML and text coverage reports generated automatically
@@ -88,14 +100,18 @@ Plugins can extend with additional tables following established patterns.
 - **Abstract Classes**: Provide common implementations where appropriate
 - **Traits**: Extract reusable functionality to avoid duplication
 - **Type Hints**: Strict typing for method parameters and return values
+- **Exception Hierarchy**: Custom exceptions for different error types
+    - Define and use custom exception classes for different error conditions instead of relying solely on generic exceptions.
+    - Use exception hierarchies to represent different error types and enable precise error handling.
 
 ## Architecture
 
 ### Layered Architecture Pattern
-- **Presentation Layer**: UI components and controllers
-- **Business Logic Layer**: Domain services and validation
-- **Data Access Layer**: DAO classes with standardized patterns
-- **Infrastructure Layer**: External services (logging, file handling, etc.)
+- **Presentation Layer**: UI components and controllers. Generate UI/View code as classes with `render()` functions. Keep rendering logic separate from business logic.
+- **Business Logic Layer**: Domain services and validation. Place business rules in service classes, not in controllers or views.
+- **Data Access Layer**: DAO classes with standardized patterns.
+    - **Traceability Matrix**: Maintain a matrix mapping requirements to implementation (class/function/file). Update as code evolves.
+- **Infrastructure Layer**: External services (logging, file handling, etc.).
 
 ### Key Architectural Components
 - **Core Services**: Generic service classes for common business operations
@@ -138,8 +154,7 @@ Plugins can extend with additional tables following established patterns.
 - Access control integration
 - Audit logging for all operations
 - Data integrity checks
-- Secure configuration management
-
+- Secure configuration management- **Structured Logging**: Implement structured logging with configurable levels (error, warning, info, debug) settable via config file or database.
 ## Performance Requirements
 
 - Efficient database queries with proper indexing
@@ -151,10 +166,18 @@ Plugins can extend with additional tables following established patterns.
 - Resource cleanup and memory management
 
 ## Implementation Guidelines
-
-### Development Workflow
-- **TDD Cycle**: Red-Green-Refactor for all new functionality
-- **Code Reviews**: Peer review for all changes
+.
+- **Requirement References**: ALL code generated must reference the requirement it fulfills (ID/ref) in PHPDoc and comments.
+    - **Requirement IDs**: Include requirement ID/reference in phpdoc blocks using custom tags like `@requirement REQ-001` or `@covers-requirement REQ-001`.
+    - **Traceability**: Ensure all classes and methods can be traced back to specific requirements in the traceability matrix.
+- **Code Reviews**: Peer review for all changes.
+- **Branching Strategy**: Feature branches with pull requests.
+- **Version Control**: Semantic versioning and changelog maintenance.
+- **Code Organization**: 
+    - **Class Design**: One class = one responsibility. Limit the number of methods and properties.
+    - **Function Design**: Functions should do one thing and do it well. Prefer pure functions where possible.
+    - **Reuse**: Extract reusable components into Composer packages.
+    - **Legacy Migration**: When refactoring/migrating, do not delete old code until the new implementation passes all unit tests. Leave a comment in the old location pointing to the new one.
 - **Branching Strategy**: Feature branches with pull requests
 - **Version Control**: Semantic versioning and changelog maintenance
 
@@ -163,6 +186,7 @@ Plugins can extend with additional tables following established patterns.
 - **Namespace Organization**: Logical grouping by functionality
 - **File Organization**: Consistent directory structure
 - **Dependency Management**: Composer for PHP dependencies
+    - **Third-Party Packages**: Research and evaluate existing packages before implementing custom solutions. Prefer well-maintained and tested plugins.
 
 ### Error Handling
 - **Exception Hierarchy**: Custom exceptions for different error types
@@ -187,7 +211,7 @@ Plugins can extend with additional tables following established patterns.
 ### Integration Testing
 - **Database Integration**: Test actual database operations
 - **API Integration**: Test external service interactions
-- **End-to-End Scenarios**: Complete user workflows
+- **End-to-end Scenarios**: Complete user workflows
 - **Performance Testing**: Load and stress testing
 
 ### Test Organization
