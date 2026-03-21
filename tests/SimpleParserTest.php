@@ -30,7 +30,7 @@ class SimpleParserTest extends TestCase
     /**
      * @requirement FR-2.1.1
      * Tests that AddressParser initialises payeeDetails when not already set
-     * and appends the address line (covers the null-init guard branch).
+     * and sets the first address line (covers the null-init guard branch).
      */
     public function testAddressParserInitialisesPayeeDetailsAndAppendsLine(): void
     {
@@ -42,13 +42,13 @@ class SimpleParserTest extends TestCase
         $parser->parse('123 Fake St', $transaction);
 
         $this->assertNotNull($transaction->payeeDetails);
-        $this->assertCount(1, $transaction->payeeDetails->address);
-        $this->assertEquals('123 Fake St', $transaction->payeeDetails->address[0]);
+        $this->assertInstanceOf(\Ksfraser\Contact\DTO\ContactData::class, $transaction->payeeDetails);
+        $this->assertEquals('123 Fake St', $transaction->payeeDetails->address_line_1);
     }
 
     /**
      * @requirement FR-2.1.1
-     * Tests that multiple AddressParser calls accumulate lines (concat, not replace).
+     * Tests that multiple AddressParser calls fill address_line_1 then address_line_2.
      */
     public function testAddressParserAppendsMultipleLines(): void
     {
@@ -59,8 +59,8 @@ class SimpleParserTest extends TestCase
         $parser->parse('Anytown ON', $transaction);
         $parser->parse('K1A 0B1', $transaction);
 
-        $this->assertCount(3, $transaction->payeeDetails->address);
-        $this->assertEquals('K1A 0B1', $transaction->payeeDetails->address[2]);
+        $this->assertEquals('123 Fake St', $transaction->payeeDetails->address_line_1);
+        $this->assertEquals('Anytown ON, K1A 0B1', $transaction->payeeDetails->address_line_2);
     }
 
     // -----------------------------------------------------------------------

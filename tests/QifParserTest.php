@@ -146,7 +146,7 @@ class QifParserTest extends TestCase
 
     /**
      * @requirement FR-2.1.1
-     * Tests that A (address) tags after a P (payee) tag populate payeeDetails->address.
+     * Tests that A (address) tags after a P (payee) tag populate payeeDetails address fields.
      */
     public function testParseAddressLines(): void
     {
@@ -157,8 +157,8 @@ class QifParserTest extends TestCase
         $t = $statement->transactions[0];
         $this->assertEquals('Walmart', $t->payee);
         $this->assertNotNull($t->payeeDetails);
-        $this->assertCount(2, $t->payeeDetails->address);
-        $this->assertEquals('AnonymCity', $t->payeeDetails->address[1]);
+        $this->assertEquals('123 Fake St', $t->payeeDetails->address_line_1);
+        $this->assertEquals('AnonymCity', $t->payeeDetails->address_line_2);
     }
 
     /**

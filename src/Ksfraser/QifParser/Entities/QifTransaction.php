@@ -23,7 +23,7 @@ class QifTransaction
     /** @var string|null Transaction category */
     public $category;
 
-    /** @var Payee|null Full payee details (including address) */
+    /** @var \Ksfraser\Contact\DTO\ContactData|null Full payee/contact details (including address) */
     public $payeeDetails;
 
     /** @var string|null Memo or description */

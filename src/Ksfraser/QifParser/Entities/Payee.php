@@ -3,7 +3,9 @@
 namespace Ksfraser\QifParser\Entities;
 
 /**
- * Payee entity holding the payee name context and optional multi-line address.
+ * @deprecated Use \Ksfraser\Contact\DTO\ContactData instead.
+ *             This class is retained only for backward compatibility.
+ *             Address lines map to ContactData::$address_line_1 / $address_line_2.
  *
  * @requirement FR-2.1.1 (Payee & Address Support)
  */
@@ -29,6 +31,7 @@ class Payee
 
     /**
      * @param string $line
+     * @deprecated Use ContactData::$address_line_1 / $address_line_2 instead
      */
     public function addAddressLine(string $line): void
     {
