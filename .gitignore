@@ -1,5 +1,6 @@
 # Composer dependencies - never committed
 vendor/
+QIFs/
 
 # PHPUnit output and coverage
 .phpunit.result.cache
