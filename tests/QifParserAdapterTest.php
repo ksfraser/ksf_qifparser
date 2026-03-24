@@ -16,6 +16,7 @@
  * @requirement FR-2.1.4
  */
 
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
 // ---------------------------------------------------------------------------
@@ -76,6 +77,10 @@ if (!class_exists('transaction', false)) {
         public $fitid;
         public $intu_bid;
         public $bankid;
+        // Declared so that banking_base::__set does not silently drop it.
+        // In real bank_import, bank_import/includes/banking.php must also
+        // declare this property for contact extraction to survive.
+        public $contact;
     }
 }
 
@@ -115,12 +120,12 @@ require_once __DIR__ . '/../qif_parser.php';
 // ---------------------------------------------------------------------------
 
 /**
- * @covers qif_parser
  * @requirement FR-1.1
  * @requirement FR-2.1.1
  * @requirement FR-2.1.3
  * @requirement FR-2.1.4
  */
+#[CoversClass(qif_parser::class)]
 class QifParserAdapterTest extends TestCase
 {
     /** Minimal valid QIF with one debit and one credit. */
@@ -487,5 +492,112 @@ class QifParserAdapterTest extends TestCase
 
         $this->assertIsArray($result);
         $this->assertNotEmpty($output);
+    }
+
+    // ------------------------------------------------------------------
+    // Contact extraction
+    // ------------------------------------------------------------------
+
+    /**
+     * mapTransaction() attaches a contact object to each transaction.
+     *
+     * @requirement FR-2.1.3
+     */
+    public function testTransactionHasContactObject(): void
+    {
+        $parser = new qif_parser();
+        $result = $parser->parse(self::QIF_CONTENT, $this->staticData, false);
+        $trz    = array_values($result)[0]->transactions[0];
+
+        $this->assertIsObject($trz->contact);
+    }
+
+    /**
+     * contact->name matches the payee.
+     *
+     * @requirement FR-2.1.3
+     */
+    public function testContactNameMatchesPayee(): void
+    {
+        $parser = new qif_parser();
+        $result = $parser->parse(self::QIF_CONTENT, $this->staticData, false);
+        $trz    = $result['2024-01-15-BANK001-1060']->transactions[0];
+
+        $this->assertSame('Electric Company', $trz->contact->name);
+        $this->assertSame('Electric Company', $trz->contact->payee);
+    }
+
+    /**
+     * contact->memo matches the memo field.
+     *
+     * @requirement FR-2.1.3
+     */
+    public function testContactMemoMatchesMemo(): void
+    {
+        $parser = new qif_parser();
+        $result = $parser->parse(self::QIF_CONTENT, $this->staticData, false);
+        $trz    = $result['2024-01-15-BANK001-1060']->transactions[0];
+
+        $this->assertSame('Hydro bill', $trz->contact->memo);
+    }
+
+    /**
+     * contact->raw concatenates payee and memo.
+     *
+     * @requirement FR-2.1.3
+     */
+    public function testContactRawConcatenatesPayeeAndMemo(): void
+    {
+        $parser = new qif_parser();
+        $result = $parser->parse(self::QIF_CONTENT, $this->staticData, false);
+        $trz    = $result['2024-01-15-BANK001-1060']->transactions[0];
+
+        $this->assertStringContainsString('Electric Company', $trz->contact->raw);
+        $this->assertStringContainsString('Hydro bill', $trz->contact->raw);
+    }
+
+    /**
+     * contact->email and contact->phone are null by default (QIF has no contact fields).
+     *
+     * @requirement FR-2.1.3
+     */
+    public function testContactEmailAndPhoneAreNull(): void
+    {
+        $parser = new qif_parser();
+        $result = $parser->parse(self::QIF_CONTENT, $this->staticData, false);
+        $trz    = $result['2024-01-15-BANK001-1060']->transactions[0];
+
+        $this->assertNull($trz->contact->email);
+        $this->assertNull($trz->contact->phone);
+    }
+
+    /**
+     * When payee is empty, contact->name is null.
+     *
+     * @requirement FR-2.1.3
+     */
+    public function testContactNameIsNullWhenPayeeEmpty(): void
+    {
+        $parser = new qif_parser();
+        $qif    = "!Type:Bank\nD01/15/2024\nT-10.00\n^\n";
+        $result = $parser->parse($qif, $this->staticData, false);
+        $trz    = array_values($result)[0]->transactions[0];
+
+        $this->assertNull($trz->contact->name);
+    }
+
+    /**
+     * contact->raw contains only payee when memo is absent.
+     *
+     * @requirement FR-2.1.3
+     */
+    public function testContactRawWithNoMemo(): void
+    {
+        $parser = new qif_parser();
+        $qif    = "!Type:Bank\nD01/15/2024\nT-10.00\nPOnly Payee\n^\n";
+        $result = $parser->parse($qif, $this->staticData, false);
+        $trz    = array_values($result)[0]->transactions[0];
+
+        $this->assertSame('Only Payee', $trz->contact->raw);
     }
 }

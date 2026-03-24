@@ -98,8 +98,13 @@ use Ksfraser\QifParser\QifParser as LibQifParser;
  * @uml
  * class qif_parser {
  *   +parse($content, $static_data, $debug): array
- *   -mapTransaction(QifTransaction, accountId, bankId, currency): transaction
+ *   -mapTransaction(QifTransaction, accountId, bankId): transaction
  * }
+ * note right of qif_parser::mapTransaction
+ *   Sets trz->contact (object) with name/raw/payee/memo/email/phone/metadata.
+ *   bank_import's transaction class must declare public $contact; for this
+ *   to persist (banking_base::__set guards undeclared properties).
+ * end note
  * qif_parser --|> parser
  * qif_parser ..> LibQifParser : uses
  * qif_parser ..> statement    : creates
@@ -238,6 +243,26 @@ class qif_parser extends parser
         $trz->acctid             = $accountId;
         $trz->bankid             = $bankId;
         $trz->intu_bid           = $bankId;
+
+        // --- Contact extraction -------------------------------------------
+        // Exposes payee + memo as a lightweight contact object so that the
+        // host importer's ContactMatchingService can consume it without
+        // re-parsing raw fields.
+        //
+        // NOTE for bank_import integration: the real `transaction` class
+        // in banking.php must declare `public $contact;` for this assignment
+        // to survive — banking_base::__set silently drops undeclared props.
+        $rawName      = trim((string) ($qifTrx->payee ?? ''));
+        $rawMemo      = trim((string) ($qifTrx->memo  ?? ''));
+        $trz->contact = (object) [
+            'name'     => $rawName !== '' ? $rawName : null,
+            'raw'      => $rawName . ($rawMemo !== '' ? ' \u2014 ' . $rawMemo : ''),
+            'payee'    => $rawName,
+            'memo'     => $rawMemo,
+            'email'    => null,
+            'phone'    => null,
+            'metadata' => (object) [],
+        ];
 
         return $trz;
     }
